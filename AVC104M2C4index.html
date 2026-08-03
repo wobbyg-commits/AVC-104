@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>flashcards — Flashcards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F3F0E7;--paper-alt:#ECE6D6;--card:#FFFFFF;--ink:#23201A;--ink-soft:#5B564A;--accent:#145A4A;--accent-dark:#0E463A;--accent-tab:#8B3A2F;--rule:#D9D2C1;--focus:#0E463A;--radius:10px;font-size:16px;}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:'Public Sans',system-ui,sans-serif;line-height:1.5;min-height:100vh;}
+h1{font-family:'Public Sans',system-ui,sans-serif;font-weight:800;letter-spacing:-.01em;margin:0 0 .3em;}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.02em;}
+.skip-link{position:absolute;left:-999px;top:0;background:var(--accent-dark);color:#fff;padding:.75em 1.25em;z-index:100;border-radius:0 0 8px 0;font-weight:600;}
+.skip-link:focus{left:0;}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;}
+header.top{border-bottom:2px solid var(--ink);padding:1.75rem 1.5rem 1.25rem;max-width:700px;margin:0 auto;}
+header.top .eyebrow{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-dark);background:var(--paper-alt);border:1px solid var(--rule);padding:.2em .6em;border-radius:4px;margin-bottom:.6rem;}
+main{max-width:700px;margin:0 auto;padding:1.5rem;}
+.deck-meta{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem;}
+.stage{perspective:1400px;max-width:560px;margin:0 auto 1.25rem;}
+.card-face{position:relative;width:100%;min-height:260px;border-radius:var(--radius);background:transparent;border:none;padding:0;cursor:pointer;display:block;}
+.card-inner{display:block;position:relative;width:100%;height:100%;min-height:260px;transition:transform .5s cubic-bezier(.4,.2,.2,1);transform-style:preserve-3d;}
+.card-face[aria-pressed="true"] .card-inner{transform:rotateY(180deg);}
+.face{position:absolute;inset:0;background:var(--card);border:1.5px solid var(--rule);border-radius:var(--radius);box-shadow:0 2px 0 var(--rule),0 10px 24px -12px rgba(35,32,26,.35);padding:2rem 1.75rem;display:flex;flex-direction:column;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+.face::before{content:"";position:absolute;left:1.75rem;right:1.75rem;top:3.2rem;height:2px;background:repeating-linear-gradient(to right,var(--rule) 0 10px,transparent 10px 16px);}
+.face .tag{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:var(--accent-tab);padding:.25em .6em;border-radius:3px 3px 3px 0;}
+.face-badges{display:flex;align-items:center;gap:.5rem;align-self:flex-start;margin-bottom:1.4rem;}
+.verified-stamp-wrap{position:absolute;right:1.1rem;bottom:1.1rem;transform:rotate(-9deg);pointer-events:none;}
+.verified-stamp-ring{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;width:76px;height:76px;border-radius:50%;border:2px solid var(--accent);box-shadow:inset 0 0 0 3px var(--paper),inset 0 0 0 5px var(--accent);color:var(--accent);opacity:.88;}
+.verified-stamp-ring svg{flex:none;}
+.verified-stamp-text{font-family:'Public Sans',sans-serif;font-weight:800;font-size:.5rem;line-height:1.2;letter-spacing:.06em;text-align:center;text-transform:uppercase;}
+.face.back .tag{background:var(--accent-dark);}
+.face .content{font-family:'Public Sans',system-ui,sans-serif;font-weight:500;font-size:1.3rem;line-height:1.45;flex:1;display:flex;align-items:center;overflow-wrap:anywhere;}
+.face .idx{position:absolute;top:.9rem;right:1rem;font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--ink-soft);}
+.face.back{transform:rotateY(180deg);}
+.controls{display:flex;justify-content:center;align-items:center;gap:.6rem;flex-wrap:wrap;}
+.btn{font-family:'Public Sans',sans-serif;font-weight:600;font-size:.95rem;border-radius:8px;border:1.5px solid var(--accent-dark);background:var(--accent);color:#fff;padding:.7em 1.3em;min-height:44px;cursor:pointer;}
+.btn:hover{background:var(--accent-dark);}
+.btn.secondary{background:var(--card);color:var(--accent-dark);}
+.btn.secondary:hover{background:var(--paper-alt);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.hint{color:var(--ink-soft);font-size:.9rem;text-align:center;}
+#sr-status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+@media (prefers-reduced-motion: reduce){.card-inner{transition:none;}}
+@media (max-width:500px){.face .content{font-size:1.2rem;}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="top">
+<span class="eyebrow">Catalog Drawer</span>
+<h1>flashcards</h1>
+</header>
+<main id="main">
+<div class="deck-meta"><span class="mono" id="progress"></span></div>
+<div class="stage">
+<button type="button" class="card-face" id="card-btn" aria-pressed="false">
+<span class="card-inner" id="card-inner">
+<span class="face front"><span class="idx mono" id="idx-front"></span><span class="face-badges"><span class="tag">Question</span></span><span class="content" id="front-text"></span></span>
+<span class="face back" aria-hidden="true"><span class="idx mono" id="idx-back"></span><span class="face-badges"><span class="tag">Answer</span></span><span class="content" id="back-text"></span><span class="verified-stamp-wrap" aria-hidden="true"><span class="verified-stamp-ring"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="verified-stamp-text">Verified<br>Correct</span></span></span></span>
+</span>
+</button>
+</div>
+<div class="controls">
+<button type="button" class="btn secondary" id="prev-btn">← Previous</button>
+<button type="button" class="btn" id="flip-btn">Flip card</button>
+<button type="button" class="btn secondary" id="next-btn">Next →</button>
+<button type="button" class="btn secondary" id="shuffle-btn">Shuffle</button>
+</div>
+<p class="hint">Press <kbd>Space</kbd> or <kbd>Enter</kbd> on the focused card to flip it, and use the ←/→ arrow keys to move between cards.</p>
+<div id="sr-status" aria-live="polite"></div>
+</main>
+<script>
+(function(){
+"use strict";
+var cards = [{"front":"According to Foundations of Aviation Law, what is a primary step in managing customer relations?","back":"Identifying customer expectations."},{"front":"On what date did Regulations (EU) 2022/201 and (EU) 2022/203 amending Regulation (EU) No. 748/2012 become applicable?","back":"March 7, 2023."},{"front":"What is the end date for the transition period established by Article 9 of Regulation (EU) No. 748/2012 for existing POAs?","back":"March 7, 2025."},{"front":"Which specific Part 21 subpart governs Production Organisation Approval (POA)?","back":"Subpart G."},{"front":"Term: SMS (in the context of EASA Part 21)","back":"Safety Management System."},{"front":"What is the core addition to Subpart G requirements for production organizations under the new EASA regulations?","back":"Implementation of a Safety Management System (SMS)."},{"front":"To which EASA subpart were most record-keeping and investigation requirements for Section A transferred?","back":"Subpart A."},{"front":"Which EASA subpart covers production without a Production Organisation Approval (Letter of Agreement)?","back":"Subpart F."},{"front":"According to EASA, a production management system must include both a quality management element and a _____ element.","back":"Safety management"},{"front":"What must a competent authority (CA) implement to verify the effectiveness of an organization's management system?","back":"Its own management system."},{"front":"Under the new EASA rules, the 12 elements of safety management for POAs are defined by _____ Annex 19.","back":"ICAO"},{"front":"For an LoA issued after March 7, 2023, when must the organization comply with the new Part 21 requirements?","back":"Immediately upon issuance, as the transition period does not apply."},{"front":"What are the two components of safety risk management required by a POA's SMS?","back":"Hazard identification and associated risk mitigation."},{"front":"Which specific management role must be designated to support a POA's safety management system?","back":"Safety Manager."},{"front":"What is the minimum level of SMS implementation required to retain a Part 21, Subpart G certificate during the first oversight cycle?","back":"The organization must show that procedures are present and suitable."},{"front":"The process introduced in Subpart G for alternative ways of meeting regulatory requirements is known as _____.","back":"AltMoC"},{"front":"Which EASA subpart was amended to introduce requirements for new management functions and ICAO Annex 19 SMS elements for Design Organizations?","back":"Subpart J."},{"front":"What does the abbreviation SSD stand for in FAA/EASA validation contexts?","back":"Significant Standards Difference."},{"front":"How is an SSD defined in the Technical Implementation Procedures?","back":"A standard with no equivalent that results in design, manual, or operational changes."},{"front":"Which FAA regulation requires compliance with Appendix K for ETOPS type design approval with no CS equivalent?","back":"14 CFR 25.3."},{"front":"14 CFR 25.21(g) requires evaluation for Appendix O icing conditions, which specifically covers _____ icing.","back":"Supercooled Large Droplet (SLD)"},{"front":"Which FAA regulation includes structural design considerations for operations above 45,000 feet?","back":"14 CFR 25.365."},{"front":"How does 14 CFR 25.562(b) differ from CS25 regarding seat requirements for dynamic landing conditions?","back":"FAA applies it to all seats, while CS excludes flight deck crew seats."},{"front":"Term: LOV (in FAA Part 25)","back":"Limit of Validity."},{"front":"FAA regulation 25.571(b) requires special consideration of widespread fatigue damage, also known as _____.","back":"WFD"},{"front":"What is the difference between FAA and CS25 requirements for bird strike impact weights on the empennage?","back":"FAA requires an 8-pound bird impact, while CS requires a 4-pound bird impact."},{"front":"Under 14 CFR 25.811(g), are universal symbolic exit signs allowed?","back":"No, the FAA requirement is more stringent and does not allow them."},{"front":"Which agency has the authority to eliminate the use of Halon fire extinguishers in certain scenarios?","back":"EASA."},{"front":"According to 14 CFR 25.901(c), the FAA requires the _____ concept to ensure no failures jeopardize safe operation.","back":"Fail-safe"},{"front":"What is the FAA requirement for ignition source protection in fuel tanks under 14 CFR 25.981(a)(3)?","back":"An ignition source cannot result from a single failure or certain latent failure combinations."},{"front":"Which FAA regulation requires all items of installed equipment to function properly, regardless of safety impact?","back":"14 CFR 25.1301(a)(4)."},{"front":"Regarding 14 CFR 25.1457, what is the FAA requirement for the location of the DFDR and CVR?","back":"They must have physical separation."},{"front":"When must complete Instructions for Continued Airworthiness (ICA) be available according to 14 CFR 25.1529?","back":"Prior to delivery of the first airplane or issuance of a standard certificate of airworthiness."},{"front":"How does EASA IR 21A.61 differ from the FAA regarding the availability of heavy maintenance ICA?","back":"EASA allows deferred availability until after delivery but prior to the scheduled task."},{"front":"14 CFR 25.1729 requires that EWIS instructions for continued airworthiness be approved by the _____.","back":"FAA"},{"front":"Which FAA regulation specifies that survival equipment must be attached to the life raft?","back":"14 CFR 25.1415(c)."},{"front":"According to 14 CFR 25.1583(a)(3), what warning must the AFM include regarding control inputs below maneuvering speed?","back":"Rapid and large alternating inputs could result in structural failure."},{"front":"Which CS provision allows comparative analysis for icing compliance that is not present in the 14 CFR?","back":"CS 25.1420(d)."},{"front":"What is the FAA requirement for flight crew oxygen dispensing equipment for high-altitude decompressions?","back":"It must be equipped with specific design features depending on flight level."},{"front":"Under 14 CFR 25.1333(b), what display requirement must be met for essential safety information?","back":"One display must remain available to the pilots at all times."},{"front":"What does 14 CFR 25.1093 require regarding engine operation in specific winter conditions?","back":"Demonstration of capability to operate in falling and blowing snow."},{"front":"Subpart G changes introduced the _____ defined in ICAO Annex 19 for production organizations.","back":"Safety management"},{"front":"What transition period is established for production organizations to correct non-compliances with the new EASA SMS requirements?","back":"March 7, 2023, to March 7, 2025."},{"front":"Under 14 CFR 25.809(a), emergency exits must have means to permit viewing of the outside conditions and likely _____.","back":"Evacuee ground contact areas"},{"front":"Which FAA regulation governs tail cone exit requirements specifically?","back":"14 CFR 25.809(h)."},{"front":"What is the FAA requirement for the restraint system in 25.785(g)?","back":"It must have a single point release and means to secure the system when not in use."},{"front":"Under 14 CFR 25.1103(a), drainage requirements are specified for the _____ system.","back":"Induction"},{"front":"How does the FAA handle rapid alternating control inputs in the Airplane Flight Manual (AFM) compared to EASA?","back":"The FAA is more stringent, requiring specific statements about potential structural failure."},{"front":"Which FAA appendix provides flammability exposure requirements for fuel tanks located within the fuselage contour?","back":"Appendix M."},{"front":"The FAA includes requirements for a limit of validity (LOV) in Appendix H, while the CS refers to full-scale _____ testing.","back":"Fatigue"},{"front":"What is the difference between FAA and EASA regarding the use of symbolic exit signs?","back":"The FAA does not allow universal symbolic exit signs, whereas EASA may."},{"front":"In FAA Part 25, which subpart contains regulation 25.981 regarding fuel tank ignition prevention?","back":"Subpart E."},{"front":"Which EASA subpart deals with Supplemental Type-Certificates (STC)?","back":"Subpart E."},{"front":"Subpart Q of EASA Part 21 focuses on the _____ of products, parts, and appliances.","back":"Identification"},{"front":"Under Regulation (EU) 2022/201, which subpart is corrected to state that the two-year transition period is not relevant to LoA approvals?","back":"Subpart F."},{"front":"The 'transition findings' process allows POAs to retain their certificate if they show their SMS procedures are _____ and suitable.","back":"Present"},{"front":"Which FAA regulation addresses aeroelastic instabilities following failures or malfunctions?","back":"14 CFR 25.629(d)(8)."},{"front":"What specific bird weight must all aircraft structures (not just the empennage) resist under CS-25 rules?","back":"4 pounds."},{"front":"Under 14 CFR 25.1303(b), a third attitude indicating system must be independent and operative after a total failure of the _____ system.","back":"Electrical generating"},{"front":"Does 14 CFR Part 25 have a corresponding Appendix Q for flight testing like CS-25?","back":"No, the FAA addresses those topics in AC 25-7C."},{"front":"Which FAA regulation specifies cabin ventilation requirements differing from CS-25?","back":"14 CFR 25.831(a)."},{"front":"Under 14 CFR 25.1181(b), a difference exists in regulatory cross-references for _____ areas.","back":"Designated fire"},{"front":"Which FAA regulation requires recorders to have improved power supply reliability?","back":"14 CFR 25.1457 and 25.1459."},{"front":"What does FAA policy memorandum dated August 3, 1992, clarify regarding engine operation?","back":"Conditions for capability in falling and blowing snow."},{"front":"Under the new EASA Subpart A, what type of reporting was newly introduced?","back":"Voluntary reporting."}];
+var order = cards.map(function(_, i){ return i; });
+var current = 0;
+var cardBtn = document.getElementById("card-btn");
+var frontText = document.getElementById("front-text");
+var backText = document.getElementById("back-text");
+var idxFront = document.getElementById("idx-front");
+var idxBack = document.getElementById("idx-back");
+var progressEl = document.getElementById("progress");
+var prevBtn = document.getElementById("prev-btn");
+var nextBtn = document.getElementById("next-btn");
+var flipBtn = document.getElementById("flip-btn");
+var shuffleBtn = document.getElementById("shuffle-btn");
+var srStatus = document.getElementById("sr-status");
+function shuffleArray(arr){ var a = arr.slice(); for (var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function renderCard(announce){
+  var c = cards[order[current]];
+  frontText.textContent = c.front;
+  backText.textContent = c.back;
+  idxFront.textContent = String(current + 1).padStart(3, "0");
+  idxBack.textContent = String(current + 1).padStart(3, "0");
+  cardBtn.setAttribute("aria-pressed", "false");
+  cardBtn.setAttribute("aria-label", "Question: " + c.front + ". Activate to show the answer.");
+  progressEl.textContent = "Card " + (current + 1) + " of " + cards.length;
+  if (announce) srStatus.textContent = "Card " + (current + 1) + " of " + cards.length + ". Question: " + c.front;
+  prevBtn.disabled = cards.length <= 1;
+  nextBtn.disabled = cards.length <= 1;
+}
+function flipCard(){
+  var pressed = cardBtn.getAttribute("aria-pressed") === "true";
+  var c = cards[order[current]];
+  if (pressed){
+    cardBtn.setAttribute("aria-pressed", "false");
+    cardBtn.setAttribute("aria-label", "Question: " + c.front + ". Activate to show the answer.");
+    srStatus.textContent = "Showing question: " + c.front;
+  } else {
+    cardBtn.setAttribute("aria-pressed", "true");
+    cardBtn.setAttribute("aria-label", "Verified answer: " + c.back + ". Activate to show the question.");
+    srStatus.textContent = "Showing verified answer: " + c.back;
+  }
+}
+function goTo(delta){
+  if (cards.length < 2) return;
+  current = (current + delta + cards.length) % cards.length;
+  renderCard(true);
+}
+cardBtn.addEventListener("click", flipCard);
+flipBtn.addEventListener("click", function(){ cardBtn.focus(); flipCard(); });
+prevBtn.addEventListener("click", function(){ goTo(-1); });
+nextBtn.addEventListener("click", function(){ goTo(1); });
+shuffleBtn.addEventListener("click", function(){ order = shuffleArray(order); current = 0; renderCard(false); srStatus.textContent = "Deck shuffled. Card 1 of " + cards.length; });
+document.addEventListener("keydown", function(e){
+  if (e.key === "ArrowLeft"){ e.preventDefault(); goTo(-1); }
+  else if (e.key === "ArrowRight"){ e.preventDefault(); goTo(1); }
+});
+if (cards.length){ renderCard(true); } else { progressEl.textContent = "No cards found."; }
+})();
+</script>
+</body>
+</html>
