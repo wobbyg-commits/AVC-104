@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>flashcards — Flashcards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F3F0E7;--paper-alt:#ECE6D6;--card:#FFFFFF;--ink:#23201A;--ink-soft:#5B564A;--accent:#145A4A;--accent-dark:#0E463A;--accent-tab:#8B3A2F;--rule:#D9D2C1;--focus:#0E463A;--radius:10px;font-size:16px;}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:'Public Sans',system-ui,sans-serif;line-height:1.5;min-height:100vh;}
+h1{font-family:'Public Sans',system-ui,sans-serif;font-weight:800;letter-spacing:-.01em;margin:0 0 .3em;}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.02em;}
+.skip-link{position:absolute;left:-999px;top:0;background:var(--accent-dark);color:#fff;padding:.75em 1.25em;z-index:100;border-radius:0 0 8px 0;font-weight:600;}
+.skip-link:focus{left:0;}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;}
+header.top{border-bottom:2px solid var(--ink);padding:1.75rem 1.5rem 1.25rem;max-width:700px;margin:0 auto;}
+header.top .eyebrow{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-dark);background:var(--paper-alt);border:1px solid var(--rule);padding:.2em .6em;border-radius:4px;margin-bottom:.6rem;}
+main{max-width:700px;margin:0 auto;padding:1.5rem;}
+.deck-meta{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem;}
+.stage{perspective:1400px;max-width:560px;margin:0 auto 1.25rem;}
+.card-face{position:relative;width:100%;min-height:260px;border-radius:var(--radius);background:transparent;border:none;padding:0;cursor:pointer;display:block;}
+.card-inner{display:block;position:relative;width:100%;height:100%;min-height:260px;transition:transform .5s cubic-bezier(.4,.2,.2,1);transform-style:preserve-3d;}
+.card-face[aria-pressed="true"] .card-inner{transform:rotateY(180deg);}
+.face{position:absolute;inset:0;background:var(--card);border:1.5px solid var(--rule);border-radius:var(--radius);box-shadow:0 2px 0 var(--rule),0 10px 24px -12px rgba(35,32,26,.35);padding:2rem 1.75rem;display:flex;flex-direction:column;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+.face::before{content:"";position:absolute;left:1.75rem;right:1.75rem;top:3.2rem;height:2px;background:repeating-linear-gradient(to right,var(--rule) 0 10px,transparent 10px 16px);}
+.face .tag{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:var(--accent-tab);padding:.25em .6em;border-radius:3px 3px 3px 0;}
+.face-badges{display:flex;align-items:center;gap:.5rem;align-self:flex-start;margin-bottom:1.4rem;}
+.verified-stamp-wrap{position:absolute;right:1.1rem;bottom:1.1rem;transform:rotate(-9deg);pointer-events:none;}
+.verified-stamp-ring{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;width:76px;height:76px;border-radius:50%;border:2px solid var(--accent);box-shadow:inset 0 0 0 3px var(--paper),inset 0 0 0 5px var(--accent);color:var(--accent);opacity:.88;}
+.verified-stamp-ring svg{flex:none;}
+.verified-stamp-text{font-family:'Public Sans',sans-serif;font-weight:800;font-size:.5rem;line-height:1.2;letter-spacing:.06em;text-align:center;text-transform:uppercase;}
+.face.back .tag{background:var(--accent-dark);}
+.face .content{font-family:'Public Sans',system-ui,sans-serif;font-weight:500;font-size:1.3rem;line-height:1.45;flex:1;display:flex;align-items:center;overflow-wrap:anywhere;}
+.face .idx{position:absolute;top:.9rem;right:1rem;font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--ink-soft);}
+.face.back{transform:rotateY(180deg);}
+.controls{display:flex;justify-content:center;align-items:center;gap:.6rem;flex-wrap:wrap;}
+.btn{font-family:'Public Sans',sans-serif;font-weight:600;font-size:.95rem;border-radius:8px;border:1.5px solid var(--accent-dark);background:var(--accent);color:#fff;padding:.7em 1.3em;min-height:44px;cursor:pointer;}
+.btn:hover{background:var(--accent-dark);}
+.btn.secondary{background:var(--card);color:var(--accent-dark);}
+.btn.secondary:hover{background:var(--paper-alt);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.hint{color:var(--ink-soft);font-size:.9rem;text-align:center;}
+#sr-status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+@media (prefers-reduced-motion: reduce){.card-inner{transition:none;}}
+@media (max-width:500px){.face .content{font-size:1.2rem;}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="top">
+<span class="eyebrow">Catalog Drawer</span>
+<h1>flashcards</h1>
+</header>
+<main id="main">
+<div class="deck-meta"><span class="mono" id="progress"></span></div>
+<div class="stage">
+<button type="button" class="card-face" id="card-btn" aria-pressed="false">
+<span class="card-inner" id="card-inner">
+<span class="face front"><span class="idx mono" id="idx-front"></span><span class="face-badges"><span class="tag">Question</span></span><span class="content" id="front-text"></span></span>
+<span class="face back" aria-hidden="true"><span class="idx mono" id="idx-back"></span><span class="face-badges"><span class="tag">Answer</span></span><span class="content" id="back-text"></span><span class="verified-stamp-wrap" aria-hidden="true"><span class="verified-stamp-ring"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="verified-stamp-text">Verified<br>Correct</span></span></span></span>
+</span>
+</button>
+</div>
+<div class="controls">
+<button type="button" class="btn secondary" id="prev-btn">← Previous</button>
+<button type="button" class="btn" id="flip-btn">Flip card</button>
+<button type="button" class="btn secondary" id="next-btn">Next →</button>
+<button type="button" class="btn secondary" id="shuffle-btn">Shuffle</button>
+</div>
+<p class="hint">Press <kbd>Space</kbd> or <kbd>Enter</kbd> on the focused card to flip it, and use the ←/→ arrow keys to move between cards.</p>
+<div id="sr-status" aria-live="polite"></div>
+</main>
+<script>
+(function(){
+"use strict";
+var cards = [{"front":"What four-step iterative process serves as a framework for continuous quality improvement in various industries?","back":"The Plan-Do-Check-Act (PDCA) Cycle."},{"front":"Who originally created the PDCA methodology in the 1930s?","back":"Walter A. Shewhart."},{"front":"Which quality expert further developed the PDCA cycle in the 1950s, leading it to be called the 'Deming Cycle'?","back":"W. Edwards Deming."},{"front":"What alternative name is sometimes used for the 'Check' step in the PDCA cycle?","back":"Study (resulting in the PDSA cycle)."},{"front":"In the PDCA cycle, which phase involves analyzing the existing situation and identifying root causes for improvement?","back":"The Plan phase."},{"front":"What is the primary objective of the 'Do' phase in a PDCA cycle?","back":"To implement changes on a small or pilot scale to gather data for analysis."},{"front":"Which PDCA stage involves comparing the results of implemented changes against original targets?","back":"The Check phase."},{"front":"If a change leads to improvement during a PDCA cycle, what happens in the 'Act' phase?","back":"The change is adopted and applied on a larger scale."},{"front":"Why is the PDCA cycle described as a continuous process rather than an end-to-end process?","back":"Because the 'Act' phase leads back to 'Plan' to seek further and better improvements."},{"front":"Term: 5 Whys Technique","back":"Definition: An iterative interrogative technique used to explore the cause-and-effect relationships underlying a particular problem."},{"front":"In an Ishikawa (Fishbone) diagram, what does the 'head' of the fish represent?","back":"The specific problem or effect being analyzed."},{"front":"What is the purpose of the 'ribs' or big bones in an Ishikawa diagram?","back":"To categorize and display the relationship between major causes and the identified problem."},{"front":"List the components represented by the 5W2H method used in process improvement.","back":"Who, What, When, Where, Why, How, and How Much/Many."},{"front":"Which quality tool helps organize large amounts of brainstorming data into consolidated groupings based on natural relationships?","back":"Affinity Diagram."},{"front":"What are the three primary functions of product packaging according to the source material?","back":"Protection from damage, containment of the product, and conveyance of information."},{"front":"What environmental concern is associated with traditional packaging materials like Styrofoam and PE foam?","back":"They are types of plastic that create long-term waste treatment burdens and harm human health."},{"front":"In the packaging case study, what specific defect prompted the need for a new packaging method?","back":"Cracks on the bottom, rim, and body of fine-stone round surface fountains."},{"front":"What was the maximum allowable cost increase for the new packaging design compared to the current Styrofoam method?","back":"The extra cost should not be higher than $20\\%$."},{"front":"Why were Styrofoam protectors failing in the warehouse storage phase of the case study?","back":"They broke down into small pieces due to pressure and collision between pallets."},{"front":"Which material was selected for the new packaging design to replace Styrofoam as a more sustainable option?","back":"Corrugated cardboard (five-layer corrugated fiberboard)."},{"front":"How does a mesh carton structure protect products during storage and transportation?","back":"It balances pressure on the contact area by providing both cushion and linkage protection from all sides."},{"front":"What test was developed in the 'Check' phase to evaluate the effectiveness of the new fountain packaging?","back":"A drop test consisting of seven impact cycles."},{"front":"In the drop test procedure, what is the maximum allowed deviation for the designated height?","back":"$\\pm 2\\%$."},{"front":"For fountains weighing more than $15\\text{ kg}$, what was the designated dropped height for the test?","back":"$250\\text{ mm}$."},{"front":"What was the success rate of the new packaging design for fountains under $15\\text{ kg}$ during the drop test?","back":"$100\\%$."},{"front":"In the case study, why was the new packaging solution not initially adopted for products weighing over $15\\text{ kg}$?","back":"Nearly $10\\%$ of those products still showed small cracks on the top and bottom after drop tests."},{"front":"The actual cost increase for the new packaging method in the case study was _____.","back":"$6\\%$."},{"front":"Which two specific cardboard tests were used to compare different suppliers (e.g., Ojitex vs. current)?","back":"Compression tests and Bursting tests."},{"front":"What is the goal of a 'standardization process' developed in the 'Act' phase?","back":"To establish a uniform set of procedures to maintain and replicate the improvements achieved."},{"front":"According to the case study, what is a major consequence of inadequate employee training in a warehouse?","back":"Wrong product arrangement and careless handling leading to product cracks."},{"front":"What role does CAD/CAM software play in the 'Do' phase of the packaging case study?","back":"It is used to design protectors and create 3D models to shorten implementation times."},{"front":"Why is the 'Plan' phase typically the most time-consuming stage of the PDCA cycle?","back":"It requires thorough data collection, root cause analysis, and detailed countermeasure planning."},{"front":"In the 5 Whys technique, what is the significance of the number 'five'?","back":"It is a general guideline for the number of repetitions needed to reach a root cause instead of a symptom."},{"front":"How does the 'Act' phase differ when a test fails vs. when it succeeds?","back":"If successful, the change is standardized; if it fails, the change is abandoned and a new cycle begins."},{"front":"What specific sustainability benefit does corrugated fiberboard offer over bubble wrap or PE foam?","back":"It is made from recycled, biodegradable, and eco-friendly materials."},{"front":"Formula: Average Bursting Force","back":"The sum of bursting forces from multiple trials divided by the number of trials ($kg \\cdot f / cm^2$)."},{"front":"What is a 'pilot scale' implementation in the 'Do' phase?","back":"A small-scale preliminary study conducted to evaluate feasibility and time/cost/effect before full-scale implementation."},{"front":"In the case study, what was the 'root cause' identified for using inadequate cushions for heavy fountains?","back":"The design team concluded based only on simulation results without performing real-world testing for each product type."},{"front":"The document that provides detailed task assignments and a workflow diagram for the finalized process is called a _____.","back":"Standard Operating Procedure (SOP)."},{"front":"Which quality tool uses a Gantt chart to track the timeline of tasks in the PDCA cycle?","back":"Action Plan."},{"front":"Why is customer requirement identification the first step in the 'Plan' phase?","back":"To ensure the improvement goals align with the expectations of key stakeholders."},{"front":"What happens in the PDCA cycle if the 'Check' step reveals that results did not meet the targets?","back":"The team returns to the 'Do' phase (or 'Plan' phase) to refine the approach."},{"front":"List two disadvantages of biodegradable packaging materials compared to traditional plastic-based ones.","back":"Higher weight and higher costs."},{"front":"In the drop test sequence, how many impact points are tested for a single carton box?","back":"Seven."},{"front":"What is the primary benefit of integrating the PDCA cycle with Lean or Six Sigma methodologies?","back":"It creates a comprehensive framework for continuous improvement by leveraging the strengths of multiple methodologies."},{"front":"In the context of QAPI, what does 'iterative process' mean for the PDCA cycle?","back":"The steps are repeated in cycles, with each iteration informing the next to achieve better outcomes."},{"front":"The 'bursting test' measures a material's resistance to _____.","back":"Rupture or breaking under pressure."},{"front":"In the standardization process, who is typically responsible for checking product quality and materials before packing?","back":"The packaging worker."},{"front":"What specific environmental trend is driving Vietnamese companies to use sustainable packaging?","back":"The expansion of product exports to Europe and developed countries with strict environmental standards."},{"front":"Which phase of the PDCA cycle involves brainstorming for 'countermeasures' to eliminate root causes?","back":"The Plan phase."},{"front":"What does the 'How Much' question in a 5W2H analysis specifically target?","back":"The estimated costs and the volume or quantity required for the improvement."},{"front":"In a compression test, what is 'deform force' measured in?","back":"$kg \\cdot f$ (kilogram-force)."},{"front":"According to the source, what is the 'art of utilizing tools' in the PDCA cycle?","back":"The scientific and practical combination of quality tools in different phases to reach the best possible improvement."},{"front":"True or False: The PDCA cycle is primarily a philosophy of organizational culture rather than just a simple approach.","back":"True."},{"front":"What is 'standardization' in the context of the 'Act' phase?","back":"The act of making the improved process the permanent, official method of operation."},{"front":"In the 'Do' phase of the case study, what was the result of the Ojitex carton box compression test compared to the current box?","back":"The Ojitex box withstood significantly more force ($753.98\\text{ kg} \\cdot \\text{f}$ vs. $321.91\\text{ kg} \\cdot \\text{f}$)."}];
+var order = cards.map(function(_, i){ return i; });
+var current = 0;
+var cardBtn = document.getElementById("card-btn");
+var frontText = document.getElementById("front-text");
+var backText = document.getElementById("back-text");
+var idxFront = document.getElementById("idx-front");
+var idxBack = document.getElementById("idx-back");
+var progressEl = document.getElementById("progress");
+var prevBtn = document.getElementById("prev-btn");
+var nextBtn = document.getElementById("next-btn");
+var flipBtn = document.getElementById("flip-btn");
+var shuffleBtn = document.getElementById("shuffle-btn");
+var srStatus = document.getElementById("sr-status");
+function shuffleArray(arr){ var a = arr.slice(); for (var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function renderCard(announce){
+  var c = cards[order[current]];
+  frontText.textContent = c.front;
+  backText.textContent = c.back;
+  idxFront.textContent = String(current + 1).padStart(3, "0");
+  idxBack.textContent = String(current + 1).padStart(3, "0");
+  cardBtn.setAttribute("aria-pressed", "false");
+  cardBtn.setAttribute("aria-label", "Question: " + c.front + ". Activate to show the answer.");
+  progressEl.textContent = "Card " + (current + 1) + " of " + cards.length;
+  if (announce) srStatus.textContent = "Card " + (current + 1) + " of " + cards.length + ". Question: " + c.front;
+  prevBtn.disabled = cards.length <= 1;
+  nextBtn.disabled = cards.length <= 1;
+}
+function flipCard(){
+  var pressed = cardBtn.getAttribute("aria-pressed") === "true";
+  var c = cards[order[current]];
+  if (pressed){
+    cardBtn.setAttribute("aria-pressed", "false");
+    cardBtn.setAttribute("aria-label", "Question: " + c.front + ". Activate to show the answer.");
+    srStatus.textContent = "Showing question: " + c.front;
+  } else {
+    cardBtn.setAttribute("aria-pressed", "true");
+    cardBtn.setAttribute("aria-label", "Verified answer: " + c.back + ". Activate to show the question.");
+    srStatus.textContent = "Showing verified answer: " + c.back;
+  }
+}
+function goTo(delta){
+  if (cards.length < 2) return;
+  current = (current + delta + cards.length) % cards.length;
+  renderCard(true);
+}
+cardBtn.addEventListener("click", flipCard);
+flipBtn.addEventListener("click", function(){ cardBtn.focus(); flipCard(); });
+prevBtn.addEventListener("click", function(){ goTo(-1); });
+nextBtn.addEventListener("click", function(){ goTo(1); });
+shuffleBtn.addEventListener("click", function(){ order = shuffleArray(order); current = 0; renderCard(false); srStatus.textContent = "Deck shuffled. Card 1 of " + cards.length; });
+document.addEventListener("keydown", function(e){
+  if (e.key === "ArrowLeft"){ e.preventDefault(); goTo(-1); }
+  else if (e.key === "ArrowRight"){ e.preventDefault(); goTo(1); }
+});
+if (cards.length){ renderCard(true); } else { progressEl.textContent = "No cards found."; }
+})();
+</script>
+</body>
+</html>
