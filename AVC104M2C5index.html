@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>flashcards — Flashcards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F3F0E7;--paper-alt:#ECE6D6;--card:#FFFFFF;--ink:#23201A;--ink-soft:#5B564A;--accent:#145A4A;--accent-dark:#0E463A;--accent-tab:#8B3A2F;--rule:#D9D2C1;--focus:#0E463A;--radius:10px;font-size:16px;}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:'Public Sans',system-ui,sans-serif;line-height:1.5;min-height:100vh;}
+h1{font-family:'Public Sans',system-ui,sans-serif;font-weight:800;letter-spacing:-.01em;margin:0 0 .3em;}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.02em;}
+.skip-link{position:absolute;left:-999px;top:0;background:var(--accent-dark);color:#fff;padding:.75em 1.25em;z-index:100;border-radius:0 0 8px 0;font-weight:600;}
+.skip-link:focus{left:0;}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;}
+header.top{border-bottom:2px solid var(--ink);padding:1.75rem 1.5rem 1.25rem;max-width:700px;margin:0 auto;}
+header.top .eyebrow{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-dark);background:var(--paper-alt);border:1px solid var(--rule);padding:.2em .6em;border-radius:4px;margin-bottom:.6rem;}
+main{max-width:700px;margin:0 auto;padding:1.5rem;}
+.deck-meta{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem;}
+.stage{perspective:1400px;max-width:560px;margin:0 auto 1.25rem;}
+.card-face{position:relative;width:100%;min-height:260px;border-radius:var(--radius);background:transparent;border:none;padding:0;cursor:pointer;display:block;}
+.card-inner{display:block;position:relative;width:100%;height:100%;min-height:260px;transition:transform .5s cubic-bezier(.4,.2,.2,1);transform-style:preserve-3d;}
+.card-face[aria-pressed="true"] .card-inner{transform:rotateY(180deg);}
+.face{position:absolute;inset:0;background:var(--card);border:1.5px solid var(--rule);border-radius:var(--radius);box-shadow:0 2px 0 var(--rule),0 10px 24px -12px rgba(35,32,26,.35);padding:2rem 1.75rem;display:flex;flex-direction:column;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+.face::before{content:"";position:absolute;left:1.75rem;right:1.75rem;top:3.2rem;height:2px;background:repeating-linear-gradient(to right,var(--rule) 0 10px,transparent 10px 16px);}
+.face .tag{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:var(--accent-tab);padding:.25em .6em;border-radius:3px 3px 3px 0;}
+.face-badges{display:flex;align-items:center;gap:.5rem;align-self:flex-start;margin-bottom:1.4rem;}
+.verified-stamp-wrap{position:absolute;right:1.1rem;bottom:1.1rem;transform:rotate(-9deg);pointer-events:none;}
+.verified-stamp-ring{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;width:76px;height:76px;border-radius:50%;border:2px solid var(--accent);box-shadow:inset 0 0 0 3px var(--paper),inset 0 0 0 5px var(--accent);color:var(--accent);opacity:.88;}
+.verified-stamp-ring svg{flex:none;}
+.verified-stamp-text{font-family:'Public Sans',sans-serif;font-weight:800;font-size:.5rem;line-height:1.2;letter-spacing:.06em;text-align:center;text-transform:uppercase;}
+.face.back .tag{background:var(--accent-dark);}
+.face .content{font-family:'Public Sans',system-ui,sans-serif;font-weight:500;font-size:1.3rem;line-height:1.45;flex:1;display:flex;align-items:center;overflow-wrap:anywhere;}
+.face .idx{position:absolute;top:.9rem;right:1rem;font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--ink-soft);}
+.face.back{transform:rotateY(180deg);}
+.controls{display:flex;justify-content:center;align-items:center;gap:.6rem;flex-wrap:wrap;}
+.btn{font-family:'Public Sans',sans-serif;font-weight:600;font-size:.95rem;border-radius:8px;border:1.5px solid var(--accent-dark);background:var(--accent);color:#fff;padding:.7em 1.3em;min-height:44px;cursor:pointer;}
+.btn:hover{background:var(--accent-dark);}
+.btn.secondary{background:var(--card);color:var(--accent-dark);}
+.btn.secondary:hover{background:var(--paper-alt);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.hint{color:var(--ink-soft);font-size:.9rem;text-align:center;}
+#sr-status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+@media (prefers-reduced-motion: reduce){.card-inner{transition:none;}}
+@media (max-width:500px){.face .content{font-size:1.2rem;}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="top">
+<span class="eyebrow">Catalog Drawer</span>
+<h1>flashcards</h1>
+</header>
+<main id="main">
+<div class="deck-meta"><span class="mono" id="progress"></span></div>
+<div class="stage">
+<button type="button" class="card-face" id="card-btn" aria-pressed="false">
+<span class="card-inner" id="card-inner">
+<span class="face front"><span class="idx mono" id="idx-front"></span><span class="face-badges"><span class="tag">Question</span></span><span class="content" id="front-text"></span></span>
+<span class="face back" aria-hidden="true"><span class="idx mono" id="idx-back"></span><span class="face-badges"><span class="tag">Answer</span></span><span class="content" id="back-text"></span><span class="verified-stamp-wrap" aria-hidden="true"><span class="verified-stamp-ring"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="verified-stamp-text">Verified<br>Correct</span></span></span></span>
+</span>
+</button>
+</div>
+<div class="controls">
+<button type="button" class="btn secondary" id="prev-btn">← Previous</button>
+<button type="button" class="btn" id="flip-btn">Flip card</button>
+<button type="button" class="btn secondary" id="next-btn">Next →</button>
+<button type="button" class="btn secondary" id="shuffle-btn">Shuffle</button>
+</div>
+<p class="hint">Press <kbd>Space</kbd> or <kbd>Enter</kbd> on the focused card to flip it, and use the ←/→ arrow keys to move between cards.</p>
+<div id="sr-status" aria-live="polite"></div>
+</main>
+<script>
+(function(){
+"use strict";
+var cards = [{"front":"According to WHO GMP guidelines, which department must function with complete autonomy from production to ensure unbiased quality decisions?","back":"The Quality Assurance (QA) department."},{"front":"What was the specific observation made regarding the Quality Assurance department at the pharmaceutical plant 'Name AABBCC'?","back":"The department existed but did not work independently from the organization."},{"front":"In a WHO GMP inspection context, what is the risk if QA approval activities are influenced by production priorities?","back":"It violates the requirement for independent functioning and unbiased quality decision-making."},{"front":"What is the 'central organizing principle' described by Robert Porter Lynch for giving organizations a competitive advantage?","back":"Collaborative Excellence."},{"front":"In the Gen 2.0 leadership model, what five-step process is used for 'Transformational Paradigm Shifting'?","back":"The Learning Loop (Believe, Perceive, Conceive, Achieve, and Receive)."},{"front":"Within the Learning Loop, which stage involves the inner values and governing principles that color an individual's outlook?","back":"Believe."},{"front":"Within the Learning Loop, what stage describes how an individual interprets reality and recognizes patterns?","back":"Perceive."},{"front":"Within the Learning Loop, what stage encompasses an individual's vision for the future and their personal mission?","back":"Conceive."},{"front":"In the Learning Loop, which stage is associated with the 'Skillsets' a person develops?","back":"Achieve."},{"front":"In the Learning Loop, what stage involves the metrics and feedback used to measure success or failure?","back":"Receive."},{"front":"According to the ICLI white paper, the stages of Believe, Perceive, and Conceive collectively constitute an individual's _____.","back":"Mindsets."},{"front":"What is the primary reason cited for the failure of traditional leadership development training?","back":"It focuses on traits and habits rather than a holistic systems architecture."},{"front":"Which factor is identified as the #1 determinant of human behavior in an organization?","back":"Culture."},{"front":"What is identified as the #1 determinant of an organization's culture?","back":"Leadership."},{"front":"What acronym is used to describe the psychological environment of adversarial cultures?","back":"FUDDD (Fear, Uncertainty, Doubt, Divisiveness, and Distrust)."},{"front":"In the Collaborative Excellence Architecture, what are the four fundamental organizational alignments?","back":"Strategic, Cultural, Operational, and Dynamic Realignment."},{"front":"Which organizational alignment focuses on achieving the vision, mission, and value proposition?","back":"Strategic Alignment."},{"front":"Which organizational alignment focuses on the rules of human engagement and building a collaborative environment?","back":"Cultural Alignment."},{"front":"Which organizational alignment focuses on efficient structure, information usage, and metrics of progress?","back":"Operational Alignment."},{"front":"Which organizational alignment focuses on how an organization innovates and adapts as conditions change?","back":"Dynamic Realignment."},{"front":"How many core frameworks make up the Collaborative Systems Architecture?","back":"Seven."},{"front":"Framework #1 of the Collaborative Systems Architecture: _____.","back":"Human Behavior & Trust."},{"front":"What is the 'Four-Drive Human Behavior Model' used in Framework #1?","back":"A model identifying the drives to Acquire, Bond, Create, and Defend."},{"front":"Framework #2 of the Collaborative Systems Architecture: _____.","back":"Time."},{"front":"What are the four dimensions of time addressed in the 'Fastime' framework?","back":"Linear, Cycle, Relative, and Experiential Time."},{"front":"Which dimension of time involves the human experience of work, such as feeling energized versus chaotic?","back":"Experiential Time."},{"front":"Which dimension of time focuses on improving the speed of completing routine and complex activities?","back":"Cycle Time."},{"front":"Framework #3 of the Collaborative Systems Architecture: _____.","back":"Culture."},{"front":"What does the 'START' model of culture stand for?","back":"Spirit, Trust, Adversity response, Rewards, and Teamwork."},{"front":"Framework #4 of the Collaborative Systems Architecture: _____.","back":"Innovation."},{"front":"Framework #5 of the Collaborative Systems Architecture: _____.","back":"Value Creation & Collaborative Advantage."},{"front":"Framework #6 of the Collaborative Systems Architecture: _____.","back":"Organizational Alignment."},{"front":"Framework #7 of the Collaborative Systems Architecture: _____.","back":"Complexity & Connectivity."},{"front":"What international standard is suggested for building high-performance value networks in Framework #7?","back":"ISO 44001 (Collaborative Business Relationship Management)."},{"front":"What is 'Transformative Action-Learning Engagement' (TALE)?","back":"A learning methodology that embeds collaborative frameworks into teams through real-world problem solving."},{"front":"According to Kevin at Great Systems, what is the primary cause of failure to sustain high levels of performance?","back":"Poor work system design."},{"front":"OPEX Barrier #1: Job designs often lack time for _____.","back":"Process improvement (or projects)."},{"front":"How can an organization reduce 'meeting defects' to free up time for process improvement?","back":"By measuring and optimizing meeting cycle times and reducing non-value added communication."},{"front":"OPEX Barrier #2 refers to poor alignment between daily leader behaviors and the organization's _____.","back":"MVV (Mission, Vision, and Values)."},{"front":"What survey process does FedEx use to gauge leadership behavior consistency?","back":"Survey-Feedback-Action."},{"front":"OPEX Barrier #3 involves high levels of unknown process waste in _____ streams.","back":"Support (such as HR, Accounting, Sales, and Marketing)."},{"front":"What is the 'kiss of death' for a process improvement effort according to OPEX Barrier #4?","back":"Staff layoffs resulting from the improvements."},{"front":"According to OPEX Barrier #5, what is a recommended financial best practice to recognize improvement success?","back":"Profit sharing or stock ownership."},{"front":"According to OPEX Barrier #6, what statistical tool should be used to measure process performance over time?","back":"A moving range control chart."},{"front":"OPEX Barrier #7: The dominance of _____ communication creates a barrier to improvement.","back":"One-way, negative."},{"front":"OPEX Barrier #8: Organizations often fail to utilize digital, AI, and _____ technology.","back":"Wearable."},{"front":"What is 'Moore's Law' mentioned in the context of technology barriers?","back":"The unprecedented rate of change in memory capacity and processing speed."},{"front":"OPEX Barrier #9: Leaders often use aggregate, static metrics rather than _____ measures.","back":"Process-based."},{"front":"OPEX Barrier #10 describes failures in skill development due to low _____ training.","back":"Practice."},{"front":"In the context of OPEX, what is 'Leader Standard Work'?","back":"A system of defined tasks for leaders to drive and support process-based improvement."},{"front":"What is the difference between 'Mindsets' and 'Skillsets' in the transformational model?","back":"Mindsets involve internal beliefs and perceptions; Skillsets involve outward actions and achievements."},{"front":"The 'Tornado of Distrust' is a tool associated with which framework?","back":"Framework #1: Human Behavior & Trust."},{"front":"How much better results do Collaborative Cultures typically produce compared to Adversarial Cultures?","back":"25% better results."},{"front":"What is the 'Fastime Shift'?","back":"The external pressure on organizations to perform activities faster and with fewer resources."},{"front":"In Framework #7, the 'Law of Compounding Interfaces' refers to the risks associated with _____.","back":"Redesigning or managing complex projects with many interconnected parts."},{"front":"What role does a 'resultant' play in the Transformative Action-Learning Engagement methodology?","back":"They act as a coach and facilitator to assist teams in implementing key learnings from workshops."},{"front":"According to the ICLI content, why is 'Diversity of Thinking' essential for innovation?","back":"It provides the 'free fuel' (ideas) required to drive the innovation engine."},{"front":"What is the 'Great Training Robbery'?","back":"A term for the billions of dollars spent annually on leadership development that fails to produce measurable results."}];
+var order = cards.map(function(_, i){ return i; });
+var current = 0;
+var cardBtn = document.getElementById("card-btn");
+var frontText = document.getElementById("front-text");
+var backText = document.getElementById("back-text");
+var idxFront = document.getElementById("idx-front");
+var idxBack = document.getElementById("idx-back");
+var progressEl = document.getElementById("progress");
+var prevBtn = document.getElementById("prev-btn");
+var nextBtn = document.getElementById("next-btn");
+var flipBtn = document.getElementById("flip-btn");
+var shuffleBtn = document.getElementById("shuffle-btn");
+var srStatus = document.getElementById("sr-status");
+function shuffleArray(arr){ var a = arr.slice(); for (var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function renderCard(announce){
+  var c = cards[order[current]];
+  frontText.textContent = c.front;
+  backText.textContent = c.back;
+  idxFront.textContent = String(current + 1).padStart(3, "0");
+  idxBack.textContent = String(current + 1).padStart(3, "0");
+  cardBtn.setAttribute("aria-pressed", "false");
+  cardBtn.setAttribute("aria-label", "Question: " + c.front + ". Activate to show the answer.");
+  progressEl.textContent = "Card " + (current + 1) + " of " + cards.length;
+  if (announce) srStatus.textContent = "Card " + (current + 1) + " of " + cards.length + ". Question: " + c.front;
+  prevBtn.disabled = cards.length <= 1;
+  nextBtn.disabled = cards.length <= 1;
+}
+function flipCard(){
+  var pressed = cardBtn.getAttribute("aria-pressed") === "true";
+  var c = cards[order[current]];
+  if (pressed){
+    cardBtn.setAttribute("aria-pressed", "false");
+    cardBtn.setAttribute("aria-label", "Question: " + c.front + ". Activate to show the answer.");
+    srStatus.textContent = "Showing question: " + c.front;
+  } else {
+    cardBtn.setAttribute("aria-pressed", "true");
+    cardBtn.setAttribute("aria-label", "Verified answer: " + c.back + ". Activate to show the question.");
+    srStatus.textContent = "Showing verified answer: " + c.back;
+  }
+}
+function goTo(delta){
+  if (cards.length < 2) return;
+  current = (current + delta + cards.length) % cards.length;
+  renderCard(true);
+}
+cardBtn.addEventListener("click", flipCard);
+flipBtn.addEventListener("click", function(){ cardBtn.focus(); flipCard(); });
+prevBtn.addEventListener("click", function(){ goTo(-1); });
+nextBtn.addEventListener("click", function(){ goTo(1); });
+shuffleBtn.addEventListener("click", function(){ order = shuffleArray(order); current = 0; renderCard(false); srStatus.textContent = "Deck shuffled. Card 1 of " + cards.length; });
+document.addEventListener("keydown", function(e){
+  if (e.key === "ArrowLeft"){ e.preventDefault(); goTo(-1); }
+  else if (e.key === "ArrowRight"){ e.preventDefault(); goTo(1); }
+});
+if (cards.length){ renderCard(true); } else { progressEl.textContent = "No cards found."; }
+})();
+</script>
+</body>
+</html>
