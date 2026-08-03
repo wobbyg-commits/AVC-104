@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>flashcards — Flashcards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F3F0E7;--paper-alt:#ECE6D6;--card:#FFFFFF;--ink:#23201A;--ink-soft:#5B564A;--accent:#145A4A;--accent-dark:#0E463A;--accent-tab:#8B3A2F;--rule:#D9D2C1;--focus:#0E463A;--radius:10px;font-size:16px;}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:'Public Sans',system-ui,sans-serif;line-height:1.5;min-height:100vh;}
+h1{font-family:'Public Sans',system-ui,sans-serif;font-weight:800;letter-spacing:-.01em;margin:0 0 .3em;}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.02em;}
+.skip-link{position:absolute;left:-999px;top:0;background:var(--accent-dark);color:#fff;padding:.75em 1.25em;z-index:100;border-radius:0 0 8px 0;font-weight:600;}
+.skip-link:focus{left:0;}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;}
+header.top{border-bottom:2px solid var(--ink);padding:1.75rem 1.5rem 1.25rem;max-width:700px;margin:0 auto;}
+header.top .eyebrow{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-dark);background:var(--paper-alt);border:1px solid var(--rule);padding:.2em .6em;border-radius:4px;margin-bottom:.6rem;}
+main{max-width:700px;margin:0 auto;padding:1.5rem;}
+.deck-meta{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem;}
+.stage{perspective:1400px;max-width:560px;margin:0 auto 1.25rem;}
+.card-face{position:relative;width:100%;min-height:260px;border-radius:var(--radius);background:transparent;border:none;padding:0;cursor:pointer;display:block;}
+.card-inner{display:block;position:relative;width:100%;height:100%;min-height:260px;transition:transform .5s cubic-bezier(.4,.2,.2,1);transform-style:preserve-3d;}
+.card-face[aria-pressed="true"] .card-inner{transform:rotateY(180deg);}
+.face{position:absolute;inset:0;background:var(--card);border:1.5px solid var(--rule);border-radius:var(--radius);box-shadow:0 2px 0 var(--rule),0 10px 24px -12px rgba(35,32,26,.35);padding:2rem 1.75rem;display:flex;flex-direction:column;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+.face::before{content:"";position:absolute;left:1.75rem;right:1.75rem;top:3.2rem;height:2px;background:repeating-linear-gradient(to right,var(--rule) 0 10px,transparent 10px 16px);}
+.face .tag{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:var(--accent-tab);padding:.25em .6em;border-radius:3px 3px 3px 0;}
+.face-badges{display:flex;align-items:center;gap:.5rem;align-self:flex-start;margin-bottom:1.4rem;}
+.verified-stamp-wrap{position:absolute;right:1.1rem;bottom:1.1rem;transform:rotate(-9deg);pointer-events:none;}
+.verified-stamp-ring{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;width:76px;height:76px;border-radius:50%;border:2px solid var(--accent);box-shadow:inset 0 0 0 3px var(--paper),inset 0 0 0 5px var(--accent);color:var(--accent);opacity:.88;}
+.verified-stamp-ring svg{flex:none;}
+.verified-stamp-text{font-family:'Public Sans',sans-serif;font-weight:800;font-size:.5rem;line-height:1.2;letter-spacing:.06em;text-align:center;text-transform:uppercase;}
+.face.back .tag{background:var(--accent-dark);}
+.face .content{font-family:'Public Sans',system-ui,sans-serif;font-weight:500;font-size:1.3rem;line-height:1.45;flex:1;display:flex;align-items:center;overflow-wrap:anywhere;}
+.face .idx{position:absolute;top:.9rem;right:1rem;font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--ink-soft);}
+.face.back{transform:rotateY(180deg);}
+.controls{display:flex;justify-content:center;align-items:center;gap:.6rem;flex-wrap:wrap;}
+.btn{font-family:'Public Sans',sans-serif;font-weight:600;font-size:.95rem;border-radius:8px;border:1.5px solid var(--accent-dark);background:var(--accent);color:#fff;padding:.7em 1.3em;min-height:44px;cursor:pointer;}
+.btn:hover{background:var(--accent-dark);}
+.btn.secondary{background:var(--card);color:var(--accent-dark);}
+.btn.secondary:hover{background:var(--paper-alt);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.hint{color:var(--ink-soft);font-size:.9rem;text-align:center;}
+#sr-status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+@media (prefers-reduced-motion: reduce){.card-inner{transition:none;}}
+@media (max-width:500px){.face .content{font-size:1.2rem;}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="top">
+<span class="eyebrow">Catalog Drawer</span>
+<h1>flashcards</h1>
+</header>
+<main id="main">
+<div class="deck-meta"><span class="mono" id="progress"></span></div>
+<div class="stage">
+<button type="button" class="card-face" id="card-btn" aria-pressed="false">
+<span class="card-inner" id="card-inner">
+<span class="face front"><span class="idx mono" id="idx-front"></span><span class="face-badges"><span class="tag">Question</span></span><span class="content" id="front-text"></span></span>
+<span class="face back" aria-hidden="true"><span class="idx mono" id="idx-back"></span><span class="face-badges"><span class="tag">Answer</span></span><span class="content" id="back-text"></span><span class="verified-stamp-wrap" aria-hidden="true"><span class="verified-stamp-ring"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="verified-stamp-text">Verified<br>Correct</span></span></span></span>
+</span>
+</button>
+</div>
+<div class="controls">
+<button type="button" class="btn secondary" id="prev-btn">← Previous</button>
+<button type="button" class="btn" id="flip-btn">Flip card</button>
+<button type="button" class="btn secondary" id="next-btn">Next →</button>
+<button type="button" class="btn secondary" id="shuffle-btn">Shuffle</button>
+</div>
+<p class="hint">Press <kbd>Space</kbd> or <kbd>Enter</kbd> on the focused card to flip it, and use the ←/→ arrow keys to move between cards.</p>
+<div id="sr-status" aria-live="polite"></div>
+</main>
+<script>
+(function(){
+"use strict";
+var cards = [{"front":"What is the primary objective of a Failure Mode and Effects Analysis (FMEA)?","back":"To recognize and evaluate potential failures of a product or process, identify corrective actions, and document the activity."},{"front":"What is meant by the 'before-the-event' action in FMEA implementation?","back":"The analysis must be completed before failure modes are incorporated into the design or process to minimize change costs."},{"front":"Which specific FMEA type is unique to Ford and focuses on designs and processes at the earliest stages?","back":"Concept FMEA (CFMEA)."},{"front":"What are the three levels of systems at which CFMEA, DFMEA, and PFMEA can be performed?","back":"System, Sub-system, and Component levels."},{"front":"What is the function of a Boundary Diagram in the FMEA process?","back":"To define the scope of the system and clarify relationships with interfacing systems."},{"front":"Which tool identifies system interfaces and documents how they affect the focused system?","back":"Interface Matrix."},{"front":"In a P-Diagram, what are the four distinct factors identified to evaluate ideal functions?","back":"Input signals, noise factors, control factors, and error states."},{"front":"What is the purpose of the Robustness Checklist (RCL)?","back":"To methodically assess the effectiveness of Design Verification Methods (DVM) against noise factors."},{"front":"The _____ is a data-driven tool used to ensure that tests, noise factors, and metrics are measured to prove out robustness.","back":"Robustness Demonstration Matrix (RDM)."},{"front":"Which FMEA-related document incorporates inputs from both the DFMEA and REDPEPR to verify design robustness?","back":"Design Verification Plan (DVP)."},{"front":"What is Case 1 in the FMEA Change Point Approach?","back":"New designs, new technology, or new processes where the scope is the complete system."},{"front":"Under the Change Point Approach, Case 2 focuses on _____ to an existing design or process.","back":"modifications."},{"front":"What defines Case 3 in the FMEA Change Point Approach?","back":"The use of an existing design or process in a new environment, location, or application."},{"front":"What is the primary benefit of performing a Concept FMEA?","back":"It helps select optimum concept alternatives and identifies potential failures caused by design interactions."},{"front":"Name one specific output of a Concept FMEA.","back":"Recommended changes to System Design Specifications (SDS)."},{"front":"How does a Design FMEA (DFMEA) support the validation process?","back":"By providing information to help plan thorough and efficient design development and validation programs."},{"front":"What is a key output of a system-level Design FMEA regarding specifications?","back":"Confirmation of or required updates to the System Design Specifications (SDS)."},{"front":"What is the purpose of a Process FMEA (PFMEA)?","back":"To identify process deficiencies and focus on controls to reduce the occurrence of unacceptable products."},{"front":"Which manufacturing document is directly developed using inputs from the Process FMEA?","back":"Process Control Plan."},{"front":"List two unique outputs of a Process FMEA compared to a Design FMEA.","back":"Operator Safety (OS) and High Impact (HI) characteristics."},{"front":"In DFMEA, what does the Special Characteristic designation 'YC' represent?","back":"Potential Critical Characteristic."},{"front":"What does the Special Characteristic designation 'YS' represent in a DFMEA?","back":"Potential Significant Characteristic."},{"front":"In a PFMEA, what symbol is used to designate a Critical Characteristic (CC)?","back":"The nabla symbol $\\nabla$."},{"front":"What characterizes a Significant Characteristic (SC) in a Process FMEA?","back":"A process-influenced characteristic that requires special control to maintain required capability."},{"front":"According to the 2011 update, a YS characteristic is declared if it has a causal relationship to failure modes with a Severity of Effects rated _____.","back":"5-8."},{"front":"Under what condition might a characteristic with a Severity of Effects rating of $<5$ be declared a YS?","back":"When agreed upon by the cross-functional team."},{"front":"Who is responsible for initiating a Design FMEA?","back":"The engineer from the responsible design function or activity."},{"front":"Who is responsible for the accuracy and thoroughness of FMEAs for proprietary 'black box' designs?","back":"The supplier, with approval from the responsible Ford design activity."},{"front":"Why is a team effort required to prepare an FMEA?","back":"To ensure input from diverse experts in design, manufacturing, assembly, service, and quality."},{"front":"What is the purpose of a Machinery FMEA (MFMEA)?","back":"To identify potential failure modes in plant machinery and tooling before finalizing their designs."},{"front":"Which 'Noise Factor' is responsible for the highest percentage (27%) of reliability concerns according to Ford studies?","back":"System Interaction."},{"front":"The 2011 FMEA update shifted focus away from RPN and toward which prioritization metric?","back":"Severity, followed by Criticality (Severity x Occurrence)."},{"front":"What is the mathematical formula for the Risk Priority Number (RPN)?","back":"$Severity \\times Occurrence \\times Detection$."},{"front":"How does 'Best Practice' FMEA manage information across different levels of the system?","back":"By cascading information and requirements from the system level down to components and processes."},{"front":"What is a 'Soft Failure' in the context of DFMEA?","back":"A failure mode related to a loss of robustness or ideal function rather than a physical break."},{"front":"Which robustness tool identifies the noise factor management strategies?","back":"Robustness Checklist (RCL)."},{"front":"Concept: Failure Mode Avoidance","back":"Definition: A discipline combining mistake prevention (FMEA) and robustness improvement (REDPEPR)."},{"front":"What role does 'Quality History' play in the FMEA flow?","back":"It serves as a critical input to prevent the reoccurrence of past quality issues."},{"front":"In PFMEA outputs, what are Special Controls?","back":"Specific manufacturing or assembly actions required to control designated Special Characteristics."},{"front":"Which industry standard does the Ford FMEA Handbook primarily quote and align with?","back":"SAE J1739."},{"front":"Why might a DFMEA recommend changes to manufacturing requirements?","back":"To improve the design for assembly, serviceability, or recycling."},{"front":"What is the 'Customer' in the context of a Process FMEA?","back":"The next operation in the process, the end user, or government regulators."},{"front":"How does the Interface Matrix assist in identifying failure causes?","back":"By documenting how interactions between systems can negatively impact functional outputs."},{"front":"A list of 'Error States' from a P-Diagram is most likely to be used as _____ in an FMEA.","back":"Failure Modes or Effects of Failure."},{"front":"What is the primary objective of using 'Control Factors' from a P-Diagram in a DFMEA?","back":"To assist in identifying Design Controls or Recommended Actions."},{"front":"Process FMEA helps identify which type of characteristic related to employee safety?","back":"Operator Safety (OS)."},{"front":"Which document identifies the 'Ideal Functions' that serve as the baseline for FMEA analysis?","back":"P-Diagram."},{"front":"What is the relationship between Criticality and RPN?","back":"Criticality ($S \\times O$) is a component of RPN ($S \\times O \\times D$) used for initial risk prioritization."},{"front":"What are the two major components of a PFMEA output regarding documentation changes?","back":"Recommended changes to process sheets and assembly aid drawings."},{"front":"Which FMEA type focuses on potential failures caused specifically by process layout decisions?","back":"Concept FMEA (CFMEA)."},{"front":"In the FMEA context, what does 'Cascading Requirements' mean?","back":"Passing high-level system requirements down to sub-systems and individual components for detailed analysis."},{"front":"What is the primary focus of Case 2 in the Change Point Approach?","back":"Possible interactions caused by modifications to an existing design."},{"front":"Which robustness tool specificallyAssess the coverage of the Design Verification Plan against noise factors?","back":"Robustness Checklist (RCL)."},{"front":"Identify the primary source of 'lessons learned' for updating Design Guides and System Design Specifications.","back":"FMEA documentation."},{"front":"What is the intended outcome of identifying 'High Impact' (HI) characteristics in a PFMEA?","back":"To focus controls on variables that significantly affect product quality if they vary."},{"front":"Which FMEA type confirms the need for Special Controls in manufacturing?","back":"Process FMEA (PFMEA)."},{"front":"What distinguishes 'Control Factors' from 'Noise Factors' in a P-Diagram?","back":"Control factors can be adjusted by the engineer, while noise factors are external variables that cause variation."},{"front":"In FMEA terminology, what is a 'Failure Mode'?","back":"The manner in which a product or process could potentially fail to meet design intent."},{"front":"Why does a DFMEA provide input to the Safety Sign-off?","back":"By identifying potential failure modes that could impact vehicle safety or regulatory compliance."},{"front":"Which FMEA type helps determine if hardware system redundancy is required?","back":"Concept FMEA (CFMEA)."},{"front":"According to the handbook, what is the 'Customer' of a Design FMEA?","back":"The end user and the subsequent manufacturing/assembly activities."},{"front":"What is the role of 'Analysis/Testing' representatives in an FMEA team?","back":"To provide expertise on how failure modes can be detected or simulated during validation."},{"front":"Which document defines the 'Signal' or intended input of a system?","back":"P-Diagram."},{"front":"What happens if a 'parent' FMEA does not exist when using the Change Point Approach?","back":"The scope must be expanded to the complete design or process (Case 1)."},{"front":"The FMEA Handbook is intended to help deploy which Ford Automotive Procedure?","back":"FAP 03-111."}];
+var order = cards.map(function(_, i){ return i; });
+var current = 0;
+var cardBtn = document.getElementById("card-btn");
+var frontText = document.getElementById("front-text");
+var backText = document.getElementById("back-text");
+var idxFront = document.getElementById("idx-front");
+var idxBack = document.getElementById("idx-back");
+var progressEl = document.getElementById("progress");
+var prevBtn = document.getElementById("prev-btn");
+var nextBtn = document.getElementById("next-btn");
+var flipBtn = document.getElementById("flip-btn");
+var shuffleBtn = document.getElementById("shuffle-btn");
+var srStatus = document.getElementById("sr-status");
+function shuffleArray(arr){ var a = arr.slice(); for (var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function renderCard(announce){
+  var c = cards[order[current]];
+  frontText.textContent = c.front;
+  backText.textContent = c.back;
+  idxFront.textContent = String(current + 1).padStart(3, "0");
+  idxBack.textContent = String(current + 1).padStart(3, "0");
+  cardBtn.setAttribute("aria-pressed", "false");
+  cardBtn.setAttribute("aria-label", "Question: " + c.front + ". Activate to show the answer.");
+  progressEl.textContent = "Card " + (current + 1) + " of " + cards.length;
+  if (announce) srStatus.textContent = "Card " + (current + 1) + " of " + cards.length + ". Question: " + c.front;
+  prevBtn.disabled = cards.length <= 1;
+  nextBtn.disabled = cards.length <= 1;
+}
+function flipCard(){
+  var pressed = cardBtn.getAttribute("aria-pressed") === "true";
+  var c = cards[order[current]];
+  if (pressed){
+    cardBtn.setAttribute("aria-pressed", "false");
+    cardBtn.setAttribute("aria-label", "Question: " + c.front + ". Activate to show the answer.");
+    srStatus.textContent = "Showing question: " + c.front;
+  } else {
+    cardBtn.setAttribute("aria-pressed", "true");
+    cardBtn.setAttribute("aria-label", "Verified answer: " + c.back + ". Activate to show the question.");
+    srStatus.textContent = "Showing verified answer: " + c.back;
+  }
+}
+function goTo(delta){
+  if (cards.length < 2) return;
+  current = (current + delta + cards.length) % cards.length;
+  renderCard(true);
+}
+cardBtn.addEventListener("click", flipCard);
+flipBtn.addEventListener("click", function(){ cardBtn.focus(); flipCard(); });
+prevBtn.addEventListener("click", function(){ goTo(-1); });
+nextBtn.addEventListener("click", function(){ goTo(1); });
+shuffleBtn.addEventListener("click", function(){ order = shuffleArray(order); current = 0; renderCard(false); srStatus.textContent = "Deck shuffled. Card 1 of " + cards.length; });
+document.addEventListener("keydown", function(e){
+  if (e.key === "ArrowLeft"){ e.preventDefault(); goTo(-1); }
+  else if (e.key === "ArrowRight"){ e.preventDefault(); goTo(1); }
+});
+if (cards.length){ renderCard(true); } else { progressEl.textContent = "No cards found."; }
+})();
+</script>
+</body>
+</html>
